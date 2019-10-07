@@ -204,14 +204,14 @@ template <typename OidMap = empty_oid_map>
 struct connection {
     using handle_type = ozo::tests::native_conn_handle;
     using native_handle_type = ozo::tests::PGconn_mock*;
-    using error_context = std::string;
+    using error_context_type = std::string;
     using oid_map_type = OidMap;
     using executor_type = io_context::executor_type;
 
     handle_type handle_;
     OidMap oid_map_;
     connection_mock* mock_ = nullptr;
-    error_context error_context_;
+    error_context_type error_context_;
     io_context* io_;
 
     connection(handle_type handle, OidMap oid_map, connection_mock* mock, error_context_type error_context, io_context* io)
@@ -221,9 +221,9 @@ struct connection {
 
     auto native_handle() const noexcept { return handle_.get(); }
 
-    const error_context& get_error_context() const noexcept { return error_context_; }
+    const error_context_type& get_error_context() const noexcept { return error_context_; }
 
-    void set_error_context(error_context v = error_context{}) { error_context_ = std::move(v); }
+    void set_error_context(error_context_type v = error_context_type{}) { error_context_ = std::move(v); }
 
     oid_map_type& oid_map() noexcept { return oid_map_;}
 
@@ -254,6 +254,8 @@ struct connection {
 
     void cancel() { mock_->cancel(); }
 
+    bool is_open() const { return bool(handle_);}
+
     friend decltype(auto) get_cancel_handle(connection& c) {
         return c.mock_->get_cancel_handle();
     }
@@ -274,11 +276,9 @@ struct connection {
     }
 
     template <typename Q, typename Options, typename Handler>
-    friend void async_execute(ozo::impl::transaction<std::shared_ptr<connection>, Options>&& transaction, Q&&,
+    friend void async_execute(ozo::transaction<std::shared_ptr<connection>, Options>&& transaction, Q&&,
             const ozo::time_traits::duration&, Handler&&) {
-        std::shared_ptr<connection> connection;
-        transaction.take_connection(connection);
-        connection->mock_->async_execute();
+        release_connection(std::move(transaction))->mock_->async_execute();
     }
 
     template <typename WaitHandler>
