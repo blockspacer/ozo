@@ -264,6 +264,61 @@ struct initiate_async_start_transaction {
 };
 } // namespace detail
 
+#ifdef OZO_DOCUMENTATION
+/**
+ * @brief Start new transaction
+ *
+ * The function starts new transaction on a database. The function can
+ * be called as any of Boost.Asio asynchronous function with #CompletionToken. The operation would be
+ * cancelled if time constrain is reached while performing.
+ *
+ * @note The function does not particitate in ADL since could be implemented via functional object.
+ *
+ * @param provider --- `ConnectionProvider` to get connection from.
+ * @param time_constraint --- operation `TimeConstraint`; this time constrain <b>includes</b> time for getting connection from provider.
+ * @param token --- operation #CompletionToken.
+ * @return deduced from #CompletionToken.
+ *
+ * @par Transaction options
+ *
+ * Transaction may be started with specialized options like isolation level, mode and so on.
+ * To specify options additional call of `with_transaction_options` should be used.
+ *
+ * @code
+ozo::begin.with_transaction_options(ozo::make_options(Options...));
+ * @endcode
+ *
+ * there `%Options` are available items of `ozo::transaction_options`.
+ *
+ * @par Example
+ *
+ * For full example see [examples/transaction.cpp](examples/transaction.cpp).
+ *
+ * Beginning a transaction:
+@snippet examples/transaction.cpp Beginning a transaction
+ * @ingroup group-transaction-functions
+ */
+template <typename ConnectionProvider, typename TimeConstraint, typename CompletionToken>
+decltype(auto) begin (ConnectionProvider&& provider, TimeConstraint time_constraint, CompletionToken&& token);
+
+/**
+ * @brief Start new transaction
+ *
+ * This function is time constrain free shortcut to `ozo::begin()` function.
+ * Its call is equal to `ozo::request(provider, query, ozo::none, out, token)` call.
+ *
+ * @note The function does not particitate in ADL since could be implemented via functional object.
+ *
+ * @param provider --- #ConnectionProvider to get connection from.
+ * @param token --- operation #CompletionToken.
+ * @return deduced from #CompletionToken.
+ * @ingroup group-transaction-functions
+ */
+template <typename ConnectionProvider, typename CompletionToken>
+decltype(auto) begin (ConnectionProvider&& provider, CompletionToken&& token);
+
+#endif
+//! @cond
 template <typename Initiator, typename Options = decltype(make_options())>
 struct begin_op : base_async_operation <begin_op<Initiator, Options>, Initiator> {
     using base = typename begin_op::base;
@@ -302,6 +357,8 @@ struct begin_op : base_async_operation <begin_op<Initiator, Options>, Initiator>
 };
 
 constexpr begin_op<detail::initiate_async_start_transaction> begin;
+
+//! @endcond
 
 namespace detail {
 struct initiate_async_end_transaction {
